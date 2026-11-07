@@ -53,6 +53,17 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **Why:** Zod can return field-level, user-readable errors, and each rule is written in one place. DB CHECKs would duplicate those rules and only surface as generic `SQLITE_CONSTRAINT` errors. The salary CHECK stays because a non-positive salary would silently corrupt every aggregate.
 - **Trade-off:** Anything that writes to the DB without going through the API (the seed script, manual SQL, a future import job) bypasses format rules and could store e.g. `country_code = 'Germany'`. Mitigation: the seed builds rows from the same typed constants in `/shared`, and any future write path should reuse the Zod schemas.
 
+## Seed (Chunk 1)
+
+- **D11.** The seed is split into a pure `generateEmployees({ seed, count })` and a DB-writing `seedDatabase`, so determinism is tested without a DB and all SQL stays in the repository.
+- **D12.** Random numbers come from an inline mulberry32 generator (about 10 lines) instead of faker, so there's no dependency and output is fully reproducible across machines. `Math.random` and `Date.now` are never used; dates come from a fixed base date plus a seeded offset.
+- **D13.** Salary bands are defined once per role in USD and turned into local bands with a per-country pay factor and the static FX rate (`salaryBandFor` in `/shared`). That's 16 roles × 10 countries without 160 hand-maintained bands. Trade-off: real local pay doesn't scale uniformly.
+- **D14.** The reference data (countries, currencies with minor-unit digits, FX rates, job titles) lives in `/shared` as typed constants. JPY has 0 minor units, so `salary_minor` is in yen.
+- **D15.** Unique emails come from `first.last` plus a numeric suffix on collision; accents are stripped (`Lucía` becomes `lucia`).
+- **D16.** `seedDatabase` wraps all inserts in one transaction: all or nothing, and a single commit instead of 10k. Each repository insert nests inside as a savepoint. A 10k run takes about 1 s on a file DB.
+- **D17.** `npm run seed` deletes and recreates the DB file (`DB_PATH`, default `backend/data/hr.db`), so every run produces the same data set. Settings: `SEED` (default 42), `COUNT` (default 10000).
+- **D18.** The "<2 s for 10k" test is a generous budget, not a benchmark. It catches regressions like dropping the outer transaction without being flaky.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.
