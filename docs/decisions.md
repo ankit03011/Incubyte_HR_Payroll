@@ -91,6 +91,20 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D38.** Performance on 10k employees, real server and file DB: every insights endpoint answers in under 90 ms. Tests enforce under 500 ms per endpoint in memory. No extra indexes were needed, because full scans of 10k rows are cheap.
 - **D39.** About 1% of seeded employees (decided by a seeded roll, so still deterministic) are paid far outside their band: half at 1.6–2.2x the band's top, half at 0.30–0.45x its bottom. Even the widest band (top = 2x bottom) then clears the outlier thresholds, so `/insights/outliers` has data to show. Everyone else is uniform within the band.
 
+## Frontend part 1 (Chunk 4)
+
+- **D40.** Dependencies: Tailwind v4 and shadcn/ui (Nova preset). The CLI added `radix-ui`, `lucide-react`, `class-variance-authority`, `tw-animate-css`, the Geist font, and `cn` (shadcn's successor to `clsx` + `tailwind-merge`; verified as published by the shadcn maintainer, with no install scripts). Tests use RTL, `user-event`, `jest-dom` and `jsdom`.
+- **D41.** TanStack Table is pinned to **v8**. npm's latest, v9, renamed its core API (`useTable`), and v8 is the version I can explain and debug on this deadline. Upgrading later is contained to one file.
+- **D42.** There's no router: two pages are a state switch in the app shell. Deep links and back-button support are a future improvement, via react-router.
+- **D43.** There's no data-fetching library. `useAsync` (about 40 lines) aborts stale requests and derives `loading` from which request produced the stored result, so a slow old response can't overwrite a newer one. It keeps the last data while reloading, so the table doesn't flash empty between pages.
+- **D44.** Filters and the country field use a styled native `<select>`: accessible, native on mobile and reliable in jsdom. Radix Select needs pointer APIs jsdom lacks.
+- **D45.** The server is the only source of validation rules. The form submits what was typed (`noValidate`) and shows the 400 `fields` under each input via `aria-describedby`. A 409 becomes "An employee with this email already exists." on the email field.
+- **D46.** The page number belongs to one view (search, filters, sort, page size). Any change derives page 1 instead of resetting it in an effect, so no request is ever sent for a stale page.
+- **D47.** Search is debounced by 300 ms, so typing "ana" sends one request, not three.
+- **D48.** Filter options come from the `/shared` reference lists, which match the seed. A job title or department typed free-hand in the form won't appear in the filter dropdowns (a `/meta` endpoint of distinct values would fix that).
+- **D49.** Money is formatted with `Intl.NumberFormat('en-US')` in the employee's currency: whole amounts drop the decimals (`$120,000`), others show the currency's digits (`$85,000.50`). Dates are formatted in UTC so ISO dates don't shift a day.
+- **D50.** Tests stub `fetch` (the network boundary) through `test/support/mockApi.ts`, which records requests so tests assert on the query that was sent, not on component internals.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.
