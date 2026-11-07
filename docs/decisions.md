@@ -77,7 +77,7 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D27.** Search is a case-insensitive substring match on name or email, with `%` and `_` escaped. SQLite's `LIKE` only folds ASCII case, so `LUCÍA` won't match `Lucía`; that's acceptable for the MVP.
 - **D28.** Emails are trimmed and lower-cased before they're stored.
 - **D29.** `server.ts` seeds 10k employees (seed 42) when the database is empty, so hosts with ephemeral disks come back usable after a restart; existing data is never touched. Run it with `npm run dev:api` (`tsx watch`).
-- **D30.** The backend serves `/employees` and `/health` at the root. The Vite dev proxy maps `/api/*` to them, so the frontend's own routes can't clash with API paths.
+- **D30.** ~~The backend serves `/employees` at the root; Vite rewrites `/api/*`.~~ **Reversed by D73.**
 - **D31.** The production build (`tsc` emit) is deferred to the deployment step, because ESM output needs `.js` import extensions and `/shared` compiled.
 
 ## Insights API (Chunk 3)
@@ -135,6 +135,17 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D70.** The employee list defaults to **most recently added first** (new API sort `added`, by `id`: ids increase with every insert, while `created_at` has only second resolution and is identical for the 10k seeded rows). Column headers still sort by name, salary or start date.
 - **D71.** After adding an employee, the list returns to the default view (no search or filters, page 1, newest first), so the new employee is always the first row even if they wouldn't match the previous filters. A **Reset** button appears whenever the view differs from the default.
 - **D72.** Tables have a fixed-height scroll area with a sticky header instead of growing the page: the employees list fills the screen height minus the chrome (on `lg`+ the one-row toolbar leaves about 13.5rem to reserve; smaller screens reserve 17rem because the toolbar stacks), so pagination stays visible at the bottom; dashboard tables cap at 28rem and the detail page's salary history at 24rem. The header's divider is an inset shadow, because collapsed borders scroll away under a sticky header.
+
+## Production readiness (Chunk 6)
+
+- **D73.** The API lives under `/api` in every environment (reverses D30): one URL scheme for dev (Vite forwards `/api` unchanged) and production (same-origin, no CORS). Unknown `/api/*` paths return a JSON 404, never `index.html`.
+- **D74.** In production Express serves the built frontend: hashed `/assets/*` are cached for a year (`immutable`), `index.html` is `no-cache`, and any GET without a file extension falls back to `index.html`, so `/insights` survives a refresh. A missing asset is a real 404, never HTML that a script tag would choke on.
+- **D75.** The production build uses `tsc` emit (as decided in D9). Backend and shared use `NodeNext` resolution with `.js` import extensions, so the output runs on plain Node. `@hr/shared` is built to `dist`; its `exports` map points `types` and `development` at the TS source (Vite, Vitest, `tsx --conditions=development`) and `default` at `dist` (Node in production, `vite build`). Dev needs no build step; `npm run build` builds shared → backend → frontend.
+- **D76.** Configuration is a pure `loadConfig(env)` validated with Zod: `PORT` (3000), `DB_PATH` (`backend/data/hr.db`), `SEED` (42), `COUNT` (10,000), `STATIC_DIR`. Defaults are relative to the backend package, not the current directory; invalid values stop startup with a message naming the variable. The UI is served whenever a built `index.html` exists, so `npm start` needs no `NODE_ENV`.
+- **D77.** Seed on startup only when the database is empty (D29). On a free host the SQLite file is **ephemeral**: every restart or redeploy starts empty and re-seeds the same deterministic 10k employees in about 1 s, and any edits made through the UI are lost. That's acceptable for a demo, because the data is reproducible.
+- **D78.** In real production I'd move to **managed Postgres** (e.g. Render, Neon or RDS): durable storage, backups and point-in-time recovery, concurrent writers, and room for multiple app instances. The SQL is standard apart from the window functions (which Postgres supports, and which could use `percentile_cont` for the median), and all SQL is in two repositories, so the change is contained. I'd add versioned migrations with a tool, stop seeding production, and add auth (out of scope, see requirements).
+- **D79.** The Docker image is multi-stage on `node:22-slim`: the build stage has the native toolchain for `better-sqlite3`, builds, then prunes dev dependencies; the runtime stage copies only the compiled output and production `node_modules`, runs as the non-root `node` user, and has a `/api/health` health check. Trade-off: frontend runtime packages (React and so on) stay in `node_modules` because pruning is workspace-wide (a larger image, no functional effect). Not verified here (no Docker locally).
+- **D80.** For Render I recommend its native Node runtime (`npm ci && npm run build`, then `npm start`, health check `/api/health`) over Docker, because it's exactly what was smoke-tested locally. Node 22 is pinned via `engines`.
 
 ## Known issues
 
