@@ -10,9 +10,9 @@ const START_DATE_SPAN_DAYS = 8 * 365;
 const DAY_MS = 86_400_000;
 
 function toEmailPart(name: string): string {
+  // NFD splits 'í' into 'i' + a combining accent, which the next step drops with all non-letters.
   return name
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-zA-Z]/g, '')
     .toLowerCase();
 }
@@ -27,8 +27,19 @@ function createUniqueEmail(): (firstName: string, lastName: string) => string {
   };
 }
 
-/** Picks a salary inside the band, rounded to whole hundreds of the local currency. */
-function salaryWithinBand(
+/** Share of employees deliberately paid far outside their band, so outlier insights have data. */
+const OUTLIER_SHARE = 0.01;
+
+function roundToStep(amountMinor: number, step: number): number {
+  return Math.max(step, Math.round(amountMinor / step) * step);
+}
+
+/**
+ * Picks a salary rounded to whole hundreds of the local currency: usually uniform inside the
+ * band; for ~1% of employees, 1.6–2.2x the band's top or 0.30–0.45x its bottom. Even for the
+ * widest band (max = 2x min) that is beyond 1.5x / below 0.5x the peer median.
+ */
+function seededSalary(
   random: Random,
   countryCode: string,
   jobTitle: string,
@@ -36,9 +47,11 @@ function salaryWithinBand(
 ): number {
   const { minMinor, maxMinor } = salaryBandFor(countryCode, jobTitle);
   const step = 100 * 10 ** currencyByCode(currencyCode).minorUnits;
-  const firstStep = Math.ceil(minMinor / step);
-  const lastStep = Math.floor(maxMinor / step);
-  return random.int(firstStep, lastStep) * step;
+  const roll = random.next();
+
+  if (roll < OUTLIER_SHARE / 2) return roundToStep(maxMinor * (1.6 + random.next() * 0.6), step);
+  if (roll < OUTLIER_SHARE) return roundToStep(minMinor * (0.3 + random.next() * 0.15), step);
+  return random.int(Math.ceil(minMinor / step), Math.floor(maxMinor / step)) * step;
 }
 
 function startDate(random: Random): string {
@@ -63,7 +76,7 @@ export function generateEmployees({ seed, count }: { seed: number; count: number
       department: job.department,
       countryCode: country.code,
       currencyCode: country.currencyCode,
-      salaryMinor: salaryWithinBand(random, country.code, job.title, country.currencyCode),
+      salaryMinor: seededSalary(random, country.code, job.title, country.currencyCode),
       startDate: startDate(random),
     };
   });

@@ -27,6 +27,13 @@ describe('generateEmployees', () => {
     expect(new Set(emails).size).toBe(10_000);
   });
 
+  it('builds plain ASCII emails, stripping accents from names like Lucía and Müller', () => {
+    const emails = generateEmployees({ seed: 42, count: 10_000 }).map((e) => e.email);
+
+    expect(emails.filter((email) => !/^[a-z]+\.[a-z]+\d*@example\.com$/.test(email))).toEqual([]);
+    expect(emails).toContain('lucia.nair@example.com');
+  });
+
   it("pays every employee in their country's currency", () => {
     const employees = generateEmployees({ seed: 42, count: 1_000 });
 
@@ -35,13 +42,15 @@ describe('generateEmployees', () => {
     }
   });
 
-  it('keeps every salary within the band for the country and job title', () => {
-    const employees = generateEmployees({ seed: 42, count: 1_000 });
+  it('keeps all but about 1% of salaries within the band for the country and job title', () => {
+    const employees = generateEmployees({ seed: 42, count: 10_000 });
 
-    for (const { countryCode, jobTitle, salaryMinor } of employees) {
+    const outsideBand = employees.filter(({ countryCode, jobTitle, salaryMinor }) => {
       const { minMinor, maxMinor } = salaryBandFor(countryCode, jobTitle);
-      expect(salaryMinor).toBeGreaterThanOrEqual(minMinor);
-      expect(salaryMinor).toBeLessThanOrEqual(maxMinor);
-    }
+      return salaryMinor < minMinor || salaryMinor > maxMinor;
+    });
+
+    expect(outsideBand.length).toBeGreaterThanOrEqual(50);
+    expect(outsideBand.length).toBeLessThanOrEqual(150);
   });
 });

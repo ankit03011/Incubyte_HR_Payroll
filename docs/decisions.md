@@ -59,7 +59,7 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D12.** Random numbers come from an inline mulberry32 generator (about 10 lines) instead of faker, so there's no dependency and output is fully reproducible across machines. `Math.random` and `Date.now` are never used; dates come from a fixed base date plus a seeded offset.
 - **D13.** Salary bands are defined once per role in USD and turned into local bands with a per-country pay factor and the static FX rate (`salaryBandFor` in `/shared`). That's 16 roles × 10 countries without 160 hand-maintained bands. Trade-off: real local pay doesn't scale uniformly.
 - **D14.** The reference data (countries, currencies with minor-unit digits, FX rates, job titles) lives in `/shared` as typed constants. JPY has 0 minor units, so `salary_minor` is in yen.
-- **D15.** Unique emails come from `first.last` plus a numeric suffix on collision; accents are stripped (`Lucía` becomes `lucia`).
+- **D15.** Unique emails come from `first.last` plus a numeric suffix on collision. Accents are stripped with `normalize('NFD')` followed by removing non-letters (`Lucía` becomes `lucia`); a test checks every email is plain ASCII.
 - **D16.** `seedDatabase` wraps all inserts in one transaction: all or nothing, and a single commit instead of 10k. Each repository insert nests inside as a savepoint. A 10k run takes about 1 s on a file DB.
 - **D17.** `npm run seed` deletes and recreates the DB file (`DB_PATH`, default `backend/data/hr.db`), so every run produces the same data set. Settings: `SEED` (default 42), `COUNT` (default 10000).
 - **D18.** The "<2 s for 10k" test is a generous budget, not a benchmark. It catches regressions like dropping the outer transaction without being flaky.
@@ -89,7 +89,7 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D36.** The distribution uses fixed 20,000 USD buckets `[min, max)`. Empty buckets between the lowest and highest are filled in so the histogram is continuous. Salaries are rounded to cents before bucketing so float noise can't push a value into the wrong bucket.
 - **D37.** Outliers are employees paid above 1.5x or below 0.5x the median **for the same job title and country**, so they're compared like for like and an Indian salary is never flagged against US pay. Sorted by ratio, most overpaid first; page size up to 50.
 - **D38.** Performance on 10k employees, real server and file DB: every insights endpoint answers in under 90 ms. Tests enforce under 500 ms per endpoint in memory. No extra indexes were needed, because full scans of 10k rows are cheap.
-- **D39.** The seeded salaries are uniform within bands whose top is at most about 1.7x the bottom, so the seed produces no outliers. Real data would.
+- **D39.** About 1% of seeded employees (decided by a seeded roll, so still deterministic) are paid far outside their band: half at 1.6–2.2x the band's top, half at 0.30–0.45x its bottom. Even the widest band (top = 2x bottom) then clears the outlier thresholds, so `/insights/outliers` has data to show. Everyone else is uniform within the band.
 
 ## Known issues
 
