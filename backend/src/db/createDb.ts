@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { migrate } from './migrate';
+import { migrate } from './migrate.js';
 
 export type Db = Database.Database;
 

@@ -10,13 +10,8 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
   server: {
-    // The API serves /employees, /insights, /health; the browser calls /api/* to avoid clashing with SPA routes.
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        rewrite: (urlPath) => urlPath.replace(/^\/api/, ''),
-      },
-    },
+    // The API lives under /api in every environment; in dev Vite forwards it unchanged.
+    proxy: { '/api': 'http://localhost:3000' },
   },
   test: {
     environment: 'jsdom',

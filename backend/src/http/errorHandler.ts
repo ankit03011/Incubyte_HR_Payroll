@@ -1,6 +1,6 @@
 import type { ApiError, ApiErrorCode } from '@hr/shared';
 import type { ErrorRequestHandler } from 'express';
-import { DuplicateEmailError, NotFoundError, ValidationError } from '../errors';
+import { DuplicateEmailError, NotFoundError, ValidationError } from '../errors.js';
 
 function isMalformedJson(error: unknown): boolean {
   return error instanceof SyntaxError && 'body' in error;

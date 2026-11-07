@@ -1,4 +1,4 @@
-import { currencyByCode } from './referenceData';
+import { currencyByCode } from './referenceData.js';
 
 /** Tolerance for binary floating-point noise, e.g. 0.29 * 100 = 28.999999999999996. */
 const EPSILON = 1e-6;

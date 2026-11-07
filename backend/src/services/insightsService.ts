@@ -13,8 +13,8 @@ import type {
   InsightsFilter,
   InsightsRepository,
   StatsRow,
-} from '../repositories/insightsRepository';
-import { toEmployee } from './employeeService';
+} from '../repositories/insightsRepository.js';
+import { toEmployee } from './employeeService.js';
 
 function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals;

@@ -1,24 +1,32 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { createApp } from './app';
-import { createDb } from './db/createDb';
-import { seedIfEmpty } from './seed/seedIfEmpty';
+import { createApp } from './app.js';
+import { loadConfig } from './config.js';
+import { createDb } from './db/createDb.js';
+import { seedIfEmpty } from './seed/seedIfEmpty.js';
 
-const port = Number(process.env.PORT ?? 3000);
-const dbPath = process.env.DB_PATH ?? 'data/hr.db';
-const seedOptions = {
-  seed: Number(process.env.SEED ?? 42),
-  count: Number(process.env.COUNT ?? 10_000),
-};
+const config = loadConfig(process.env);
 
-mkdirSync(dirname(dbPath), { recursive: true });
-const db = createDb(dbPath);
+mkdirSync(dirname(config.dbPath), { recursive: true });
+const db = createDb(config.dbPath);
 
-// Hosts with ephemeral disks start from an empty DB; seeding keeps the demo usable after restarts.
-if (seedIfEmpty(db, seedOptions)) {
-  console.log(`Seeded ${seedOptions.count} employees (seed ${seedOptions.seed}) into ${dbPath}`);
+// Free hosts give an ephemeral disk: every fresh start has an empty DB, and the deterministic
+// seed recreates the same demo data. Existing data is never touched.
+if (seedIfEmpty(db, config)) {
+  console.log(`Seeded ${config.count} employees (seed ${config.seed}) into ${config.dbPath}`);
 }
 
-createApp({ db }).listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+const server = createApp({ db, staticDir: config.staticDir }).listen(config.port, () => {
+  const ui = config.staticDir ? `UI and API` : `API (UI not built; use the Vite dev server)`;
+  console.log(`${ui} listening on http://localhost:${config.port}`);
 });
+
+// Close the DB cleanly when the host stops the container.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    server.close(() => {
+      db.close();
+      process.exit(0);
+    });
+  });
+}

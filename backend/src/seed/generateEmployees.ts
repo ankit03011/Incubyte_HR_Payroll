@@ -1,7 +1,7 @@
 import { COUNTRIES, JOB_TITLES, currencyByCode, salaryBandFor } from '@hr/shared';
-import type { NewEmployee } from '../repositories/employeeRepository';
-import { FIRST_NAMES, LAST_NAMES } from './names';
-import { createRandom, type Random } from './random';
+import type { NewEmployee } from '../repositories/employeeRepository.js';
+import { FIRST_NAMES, LAST_NAMES } from './names.js';
+import { createRandom, type Random } from './random.js';
 
 const EMAIL_DOMAIN = 'example.com';
 /** Fixed base date keeps the output independent of when the seed runs. */

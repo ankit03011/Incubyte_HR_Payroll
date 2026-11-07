@@ -1,6 +1,6 @@
-import type { Db } from '../db/createDb';
-import { SALARY_IN_USD, employeeColumns } from '../db/sql';
-import type { EmployeeRecord } from './employeeRepository';
+import type { Db } from '../db/createDb.js';
+import { SALARY_IN_USD, employeeColumns } from '../db/sql.js';
+import type { EmployeeRecord } from './employeeRepository.js';
 
 export interface InsightsFilter {
   countryCode?: string | undefined;

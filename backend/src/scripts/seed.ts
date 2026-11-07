@@ -1,12 +1,11 @@
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { createDb } from '../db/createDb';
-import { generateEmployees } from '../seed/generateEmployees';
-import { seedDatabase } from '../seed/seedDatabase';
+import { loadConfig } from '../config.js';
+import { createDb } from '../db/createDb.js';
+import { generateEmployees } from '../seed/generateEmployees.js';
+import { seedDatabase } from '../seed/seedDatabase.js';
 
-const dbPath = process.env.DB_PATH ?? 'data/hr.db';
-const seed = Number(process.env.SEED ?? 42);
-const count = Number(process.env.COUNT ?? 10_000);
+const { dbPath, seed, count } = loadConfig(process.env);
 
 // Seeding resets the database so every run yields the same deterministic data set.
 rmSync(dbPath, { force: true });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { insightsFilterSchema, outliersQuerySchema, parseOrThrow } from '../http/validation';
-import type { InsightsService } from '../services/insightsService';
+import { insightsFilterSchema, outliersQuerySchema, parseOrThrow } from '../http/validation.js';
+import type { InsightsService } from '../services/insightsService.js';
 
 export function insightsRouter(service: InsightsService): Router {
   const router = Router();

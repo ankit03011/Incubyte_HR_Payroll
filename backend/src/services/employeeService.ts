@@ -9,13 +9,13 @@ import {
   type EmployeeSortField,
   type SortOrder,
 } from '@hr/shared';
-import { NotFoundError } from '../errors';
+import { NotFoundError } from '../errors.js';
 import type {
   EmployeeFilter,
   EmployeeRecord,
   EmployeeRepository,
   NewEmployee,
-} from '../repositories/employeeRepository';
+} from '../repositories/employeeRepository.js';
 
 export interface EmployeeListParams extends EmployeeFilter {
   page: number;

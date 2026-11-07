@@ -4,8 +4,8 @@ import {
   idParamsSchema,
   listQuerySchema,
   parseOrThrow,
-} from '../http/validation';
-import type { EmployeeService } from '../services/employeeService';
+} from '../http/validation.js';
+import type { EmployeeService } from '../services/employeeService.js';
 
 /** HTTP only: parse and validate, call the service, pick the status code. */
 export function employeesRouter(service: EmployeeService): Router {

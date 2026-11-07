@@ -10,7 +10,7 @@ import {
   type EmployeeInput,
 } from '@hr/shared';
 import { z } from 'zod';
-import { ValidationError } from '../errors';
+import { ValidationError } from '../errors.js';
 
 /** Upper bound keeps salaries far inside Number.MAX_SAFE_INTEGER once in minor units. */
 const MAX_SALARY = 1_000_000_000_000;

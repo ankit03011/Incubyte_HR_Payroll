@@ -1,4 +1,4 @@
-import type { Employee, Page } from './api';
+import type { Employee, Page } from './api.js';
 
 /** Salary statistics in `currencyCode`, major units. Payroll totals are always USD. */
 export interface SalaryStatistics {

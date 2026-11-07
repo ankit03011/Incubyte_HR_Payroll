@@ -1,5 +1,5 @@
-import type { Db } from '../db/createDb';
-import { createEmployeeRepository, type NewEmployee } from '../repositories/employeeRepository';
+import type { Db } from '../db/createDb.js';
+import { createEmployeeRepository, type NewEmployee } from '../repositories/employeeRepository.js';
 
 /**
  * Inserts all employees in one transaction: all or nothing, and one fsync instead of

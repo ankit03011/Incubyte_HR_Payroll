@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import type { EmployeeSortField, SortOrder } from '@hr/shared';
-import type { Db } from '../db/createDb';
-import { SALARY_IN_USD, employeeColumns } from '../db/sql';
-import { DuplicateEmailError } from '../errors';
+import type { Db } from '../db/createDb.js';
+import { SALARY_IN_USD, employeeColumns } from '../db/sql.js';
+import { DuplicateEmailError } from '../errors.js';
 
 export interface NewEmployee {
   fullName: string;
