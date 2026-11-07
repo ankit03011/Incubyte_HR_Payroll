@@ -23,11 +23,11 @@ export function createEmployeeRepository(db: Db) {
      VALUES (@employeeId, @salaryMinor, @currencyCode, @effectiveFrom)`,
   );
 
-  return {
-    insert(employee: NewEmployee): { id: number } {
-      const id = Number(insertEmployee.run(employee).lastInsertRowid);
-      insertSalaryHistory.run({ ...employee, employeeId: id });
-      return { id };
-    },
-  };
+  const insert = db.transaction((employee: NewEmployee): { id: number } => {
+    const id = Number(insertEmployee.run(employee).lastInsertRowid);
+    insertSalaryHistory.run({ ...employee, employeeId: id });
+    return { id };
+  });
+
+  return { insert };
 }
