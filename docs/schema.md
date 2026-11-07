@@ -1,14 +1,16 @@
-# SQLite Schema (proposal, not implemented yet)
+# SQLite Schema
+
+Implemented as migration 1 in [`backend/src/db/migrate.ts`](../backend/src/db/migrate.ts).
 
 ```sql
 CREATE TABLE employees (
   id                  INTEGER PRIMARY KEY,
-  full_name           TEXT    NOT NULL CHECK (length(trim(full_name)) > 0),
+  full_name           TEXT    NOT NULL,
   email               TEXT    NOT NULL COLLATE NOCASE,
   job_title           TEXT    NOT NULL,
   department          TEXT    NOT NULL,
-  country_code        TEXT    NOT NULL CHECK (length(country_code) = 2),   -- ISO 3166-1 alpha-2
-  currency_code       TEXT    NOT NULL CHECK (length(currency_code) = 3),  -- ISO 4217
+  country_code        TEXT    NOT NULL,                                    -- ISO 3166-1 alpha-2
+  currency_code       TEXT    NOT NULL,                                    -- ISO 4217
   salary_minor        INTEGER NOT NULL CHECK (salary_minor > 0),           -- current annual salary, minor units
   created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
@@ -23,7 +25,7 @@ CREATE TABLE salary_history (
   id              INTEGER PRIMARY KEY,
   employee_id     INTEGER NOT NULL REFERENCES employees (id) ON DELETE CASCADE,
   salary_minor    INTEGER NOT NULL CHECK (salary_minor > 0),
-  currency_code   TEXT    NOT NULL CHECK (length(currency_code) = 3),
+  currency_code   TEXT    NOT NULL,
   effective_from  TEXT    NOT NULL,          -- ISO date (YYYY-MM-DD)
   created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -32,9 +34,13 @@ CREATE INDEX ix_salary_history_employee_effective
   ON salary_history (employee_id, effective_from DESC);
 ```
 
-`PRAGMA foreign_keys = ON` must be set on every connection, because SQLite doesn't enforce foreign keys by default.
+Plain SQLite doesn't enforce foreign keys unless `PRAGMA foreign_keys = ON` is set. better-sqlite3 turns it on by default, and `createDb` also sets it explicitly so integrity doesn't depend on how the driver was built.
 
 ## Reasoning
+
+**Which rules the DB enforces vs. the app.** The database enforces only integrity invariants: foreign keys, cascade delete, unique email, and positive salary. Format rules (non-blank name, ISO code shape, country/currency match) live in Zod at the API boundary, where they can return field-level error messages. Duplicating them as CHECKs would put the same rule in two places. The salary CHECK stays because a non-positive salary corrupts every aggregate.
+
+**Migrations.** The migrations are an ordered list of SQL strings, and the applied version is kept in `PRAGMA user_version`. Each migration runs in its own transaction, so a failed migration leaves no half-applied schema. A shipped migration is never edited; changes go in a new one appended to the list. This avoids a migration library for a single-schema app.
 
 **Current salary is denormalised onto `employees`.** Every insight query (min / median / max per country) reads only `employees`, with no "latest row per employee" subquery over history. The cost is duplication: the service writes `employees.salary_minor` and a `salary_history` row **in one transaction**, so the two can't drift apart. A history row is written on create too, so the history is complete from day one.
 
