@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
-import { createDb, type Db } from '../../src/db/createDb';
-import { migrate } from '../../src/db/migrate';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { migrate } from '../../src/db/migrate.js';
 
 function tableNames(db: Db): string[] {
   const rows = db

@@ -1,9 +1,9 @@
-import type { Db } from '../../src/db/createDb';
+import type { Db } from '../../src/db/createDb.js';
 import {
   createEmployeeRepository,
   type NewEmployee,
-} from '../../src/repositories/employeeRepository';
-import { aNewEmployee } from './aNewEmployee';
+} from '../../src/repositories/employeeRepository.js';
+import { aNewEmployee } from './aNewEmployee.js';
 
 /** Arranges fixtures directly through the repository, giving each a unique email. */
 export function givenEmployees(db: Db, ...employees: Partial<NewEmployee>[]): void {

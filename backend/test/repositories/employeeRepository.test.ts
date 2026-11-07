@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createDb, type Db } from '../../src/db/createDb';
-import { DuplicateEmailError } from '../../src/errors';
-import { createEmployeeRepository } from '../../src/repositories/employeeRepository';
-import { aNewEmployee } from '../builders/aNewEmployee';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { DuplicateEmailError } from '../../src/errors.js';
+import { createEmployeeRepository } from '../../src/repositories/employeeRepository.js';
+import { aNewEmployee } from '../builders/aNewEmployee.js';
 
 function salaryHistoryOf(db: Db, employeeId: number): unknown[] {
   return db

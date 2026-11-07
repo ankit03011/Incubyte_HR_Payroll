@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitsCurrencyPrecision, toMajorUnits, toMinorUnits } from '../src/money';
+import { fitsCurrencyPrecision, toMajorUnits, toMinorUnits } from '../src/money.js';
 
 describe('toMinorUnits', () => {
   it.each([

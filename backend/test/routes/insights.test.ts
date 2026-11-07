@@ -7,11 +7,11 @@ import type {
   OutliersResponse,
   SalaryDistribution,
 } from '@hr/shared';
-import { createApp } from '../../src/app';
-import { createDb, type Db } from '../../src/db/createDb';
-import { generateEmployees } from '../../src/seed/generateEmployees';
-import { seedDatabase } from '../../src/seed/seedDatabase';
-import { givenEmployees, paidInInr, paidInUsd } from '../builders/givenEmployees';
+import { createApp } from '../../src/app.js';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { generateEmployees } from '../../src/seed/generateEmployees.js';
+import { seedDatabase } from '../../src/seed/seedDatabase.js';
+import { givenEmployees, paidInInr, paidInUsd } from '../builders/givenEmployees.js';
 
 // Static FX: 83 INR = 1 USD, so 8,300,000 INR is exactly 100,000 USD.
 const INR_100K_USD = 8_300_000;
@@ -31,7 +31,7 @@ async function get<T>(path: string): Promise<T> {
 
 describe('GET /insights/summary', () => {
   it('reports zero headcount and payroll, and no average, for an empty organisation', async () => {
-    expect(await get<InsightsSummary>('/insights/summary')).toEqual({
+    expect(await get<InsightsSummary>('/api/insights/summary')).toEqual({
       headcount: 0,
       totalPayrollUsd: 0,
       meanSalaryUsd: null,
@@ -46,13 +46,13 @@ describe('GET /insights/summary', () => {
   ])('finds the median of %s', async (_case, salaries, median) => {
     givenEmployees(db, ...salaries.map(paidInUsd));
 
-    expect((await get<InsightsSummary>('/insights/summary')).medianSalaryUsd).toBe(median);
+    expect((await get<InsightsSummary>('/api/insights/summary')).medianSalaryUsd).toBe(median);
   });
 
   it('converts every salary to USD before totalling and averaging', async () => {
     givenEmployees(db, paidInUsd(100_000), paidInInr(INR_100K_USD), paidInUsd(40_000));
 
-    expect(await get<InsightsSummary>('/insights/summary')).toEqual({
+    expect(await get<InsightsSummary>('/api/insights/summary')).toEqual({
       headcount: 3,
       totalPayrollUsd: 240_000,
       meanSalaryUsd: 80_000,
@@ -69,7 +69,7 @@ describe('GET /insights/by-country', () => {
       ...[1_000_000, 2_000_000, 3_000_000].map(paidInInr),
     );
 
-    const { items } = await get<CountryInsightsResponse>('/insights/by-country');
+    const { items } = await get<CountryInsightsResponse>('/api/insights/by-country');
 
     expect(items).toMatchObject([
       {
@@ -96,7 +96,7 @@ describe('GET /insights/by-country', () => {
   it("totals each country's payroll in USD", async () => {
     givenEmployees(db, paidInInr(INR_100K_USD), paidInInr(INR_100K_USD), paidInUsd(50_000));
 
-    const { items } = await get<CountryInsightsResponse>('/insights/by-country');
+    const { items } = await get<CountryInsightsResponse>('/api/insights/by-country');
 
     expect(
       items.map(({ countryCode, totalPayrollUsd }) => ({ countryCode, totalPayrollUsd })),
@@ -116,7 +116,7 @@ describe('GET /insights/by-job-title', () => {
       { jobTitle: 'Recruiter', ...paidInUsd(60_000) },
     );
 
-    const { items } = await get<JobTitleInsightsResponse>('/insights/by-job-title');
+    const { items } = await get<JobTitleInsightsResponse>('/api/insights/by-job-title');
 
     expect(items).toEqual([
       {
@@ -150,7 +150,9 @@ describe('GET /insights/by-job-title', () => {
       { jobTitle: 'Software Engineer', ...paidInUsd(100_000) },
     );
 
-    const { items } = await get<JobTitleInsightsResponse>('/insights/by-job-title?countryCode=IN');
+    const { items } = await get<JobTitleInsightsResponse>(
+      '/api/insights/by-job-title?countryCode=IN',
+    );
 
     expect(items).toMatchObject([
       {
@@ -169,7 +171,7 @@ describe('GET /insights/distribution', () => {
   it('counts employees per 20,000 USD bucket, including empty buckets in between', async () => {
     givenEmployees(db, paidInUsd(10_000), paidInUsd(15_000), paidInUsd(65_000));
 
-    expect(await get<SalaryDistribution>('/insights/distribution')).toEqual({
+    expect(await get<SalaryDistribution>('/api/insights/distribution')).toEqual({
       currencyCode: 'USD',
       bucketSize: 20_000,
       buckets: [
@@ -184,7 +186,7 @@ describe('GET /insights/distribution', () => {
   it('converts salaries to USD before bucketing', async () => {
     givenEmployees(db, paidInInr(2_490_000)); // 30,000 USD
 
-    const { buckets } = await get<SalaryDistribution>('/insights/distribution');
+    const { buckets } = await get<SalaryDistribution>('/api/insights/distribution');
 
     expect(buckets).toEqual([{ minSalary: 20_000, maxSalary: 40_000, headcount: 1 }]);
   });
@@ -198,14 +200,14 @@ describe('GET /insights/distribution', () => {
     );
 
     const { buckets } = await get<SalaryDistribution>(
-      '/insights/distribution?countryCode=US&department=Sales',
+      '/api/insights/distribution?countryCode=US&department=Sales',
     );
 
     expect(buckets).toEqual([{ minSalary: 40_000, maxSalary: 60_000, headcount: 1 }]);
   });
 
   it('returns no buckets when nobody matches', async () => {
-    expect((await get<SalaryDistribution>('/insights/distribution')).buckets).toEqual([]);
+    expect((await get<SalaryDistribution>('/api/insights/distribution')).buckets).toEqual([]);
   });
 });
 
@@ -220,7 +222,7 @@ describe('GET /insights/outliers', () => {
       { fullName: 'Low', ...paidInUsd(40_000) },
     );
 
-    const body = await get<OutliersResponse>('/insights/outliers');
+    const body = await get<OutliersResponse>('/api/insights/outliers');
 
     expect(body).toMatchObject({ total: 2, page: 1, pageSize: 50 });
     expect(body.items).toMatchObject([
@@ -236,17 +238,17 @@ describe('GET /insights/outliers', () => {
       ...[2_490_000, 2_490_000, 2_490_000].map(paidInInr), // 30,000 USD each: low vs US, normal locally
     );
 
-    expect((await get<OutliersResponse>('/insights/outliers')).total).toBe(0);
+    expect((await get<OutliersResponse>('/api/insights/outliers')).total).toBe(0);
   });
 
   it('finds the deliberate outliers in the seeded data', async () => {
     seedDatabase(db, generateEmployees({ seed: 42, count: 10_000 }));
 
-    expect((await get<OutliersResponse>('/insights/outliers')).total).toBeGreaterThan(0);
+    expect((await get<OutliersResponse>('/api/insights/outliers')).total).toBeGreaterThan(0);
   });
 
   it('rejects a page size above 50', async () => {
-    const response = await request(app).get('/insights/outliers?pageSize=51');
+    const response = await request(app).get('/api/insights/outliers?pageSize=51');
 
     expect(response.status).toBe(400);
     expect(response.body.error.fields.pageSize).toBeDefined();
@@ -255,12 +257,12 @@ describe('GET /insights/outliers', () => {
 
 describe('insights performance', () => {
   it.each([
-    '/insights/summary',
-    '/insights/by-country',
-    '/insights/by-job-title',
-    '/insights/by-job-title?countryCode=IN',
-    '/insights/distribution',
-    '/insights/outliers',
+    '/api/insights/summary',
+    '/api/insights/by-country',
+    '/api/insights/by-job-title',
+    '/api/insights/by-job-title?countryCode=IN',
+    '/api/insights/distribution',
+    '/api/insights/outliers',
   ])('answers %s for 10,000 employees in well under a second', async (path) => {
     seedDatabase(db, generateEmployees({ seed: 42, count: 10_000 }));
 

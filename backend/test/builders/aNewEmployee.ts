@@ -1,4 +1,4 @@
-import type { NewEmployee } from '../../src/repositories/employeeRepository';
+import type { NewEmployee } from '../../src/repositories/employeeRepository.js';
 
 export function aNewEmployee(overrides: Partial<NewEmployee> = {}): NewEmployee {
   return {

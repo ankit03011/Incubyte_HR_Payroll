@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { currencyFor, salaryBandFor } from '@hr/shared';
-import { generateEmployees } from '../../src/seed/generateEmployees';
+import { generateEmployees } from '../../src/seed/generateEmployees.js';
 
 describe('generateEmployees', () => {
   it('generates exactly the requested number of employees', () => {

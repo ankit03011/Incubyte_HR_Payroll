@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currencyFor, salaryBandFor } from '../src/referenceData';
+import { currencyFor, salaryBandFor } from '../src/referenceData.js';
 
 describe('currencyFor', () => {
   it('returns the currency a country pays salaries in', () => {

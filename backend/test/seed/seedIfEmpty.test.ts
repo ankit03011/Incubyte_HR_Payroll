@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createDb, type Db } from '../../src/db/createDb';
-import { createEmployeeRepository } from '../../src/repositories/employeeRepository';
-import { seedIfEmpty } from '../../src/seed/seedIfEmpty';
-import { aNewEmployee } from '../builders/aNewEmployee';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { createEmployeeRepository } from '../../src/repositories/employeeRepository.js';
+import { seedIfEmpty } from '../../src/seed/seedIfEmpty.js';
+import { aNewEmployee } from '../builders/aNewEmployee.js';
 
 function employeeCount(db: Db): number {
   return createEmployeeRepository(db).count();

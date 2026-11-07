@@ -1,9 +1,9 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { CreateEmployeeRequest, EmployeeDetail, EmployeeListResponse } from '@hr/shared';
-import { createApp } from '../../src/app';
-import { createDb, type Db } from '../../src/db/createDb';
-import { givenEmployees } from '../builders/givenEmployees';
+import { createApp } from '../../src/app.js';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { givenEmployees } from '../builders/givenEmployees.js';
 
 const TODAY = '2026-11-07';
 
@@ -32,14 +32,14 @@ async function createEmployee(
   overrides: Partial<CreateEmployeeRequest> = {},
 ): Promise<EmployeeDetail> {
   const response = await request(app)
-    .post('/employees')
+    .post('/api/employees')
     .send(aCreateRequest(overrides))
     .expect(201);
   return response.body as EmployeeDetail;
 }
 
 async function list(query: string): Promise<EmployeeListResponse> {
-  const response = await request(app).get(`/employees${query}`).expect(200);
+  const response = await request(app).get(`/api/employees${query}`).expect(200);
   return response.body as EmployeeListResponse;
 }
 
@@ -81,7 +81,7 @@ describe('POST /employees', () => {
   });
 
   it('rejects invalid input with a message for every invalid field', async () => {
-    const response = await request(app).post('/employees').send({
+    const response = await request(app).post('/api/employees').send({
       fullName: ' ',
       email: 'not-an-email',
       jobTitle: '',
@@ -99,7 +99,7 @@ describe('POST /employees', () => {
   });
 
   it('reports missing fields as required', async () => {
-    const response = await request(app).post('/employees').send({});
+    const response = await request(app).post('/api/employees').send({});
 
     expect(response.status).toBe(400);
     expect(response.body.error.fields).toMatchObject({
@@ -115,7 +115,7 @@ describe('POST /employees', () => {
 
   it('rejects a malformed JSON body with 400 instead of a server error', async () => {
     const response = await request(app)
-      .post('/employees')
+      .post('/api/employees')
       .set('Content-Type', 'application/json')
       .send('{"fullName": ');
 
@@ -125,7 +125,7 @@ describe('POST /employees', () => {
 
   it('rejects a salary with more decimals than the currency allows', async () => {
     const response = await request(app)
-      .post('/employees')
+      .post('/api/employees')
       .send(aCreateRequest({ countryCode: 'JP', salary: 100.5 }));
 
     expect(response.status).toBe(400);
@@ -136,7 +136,7 @@ describe('POST /employees', () => {
     await createEmployee({ email: 'ada@example.com' });
 
     const response = await request(app)
-      .post('/employees')
+      .post('/api/employees')
       .send(aCreateRequest({ email: 'ADA@example.com' }));
 
     expect(response.status).toBe(409);
@@ -148,10 +148,10 @@ describe('GET /employees/:id', () => {
   it('returns the employee with salary history, newest first', async () => {
     const { id } = await createEmployee({ salary: 120_000 });
     await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ salary: 130_000 }));
 
-    const response = await request(app).get(`/employees/${id}`).expect(200);
+    const response = await request(app).get(`/api/employees/${id}`).expect(200);
 
     expect((response.body as EmployeeDetail).salaryHistory).toEqual([
       { salary: 130_000, currencyCode: 'USD', effectiveFrom: TODAY },
@@ -160,14 +160,14 @@ describe('GET /employees/:id', () => {
   });
 
   it('responds 404 for an unknown id', async () => {
-    const response = await request(app).get('/employees/999');
+    const response = await request(app).get('/api/employees/999');
 
     expect(response.status).toBe(404);
     expect(response.body.error.code).toBe('NOT_FOUND');
   });
 
   it('responds 400 for an id that is not a positive integer', async () => {
-    const response = await request(app).get('/employees/abc');
+    const response = await request(app).get('/api/employees/abc');
 
     expect(response.status).toBe(400);
     expect(response.body.error.fields.id).toBeDefined();
@@ -179,7 +179,7 @@ describe('PUT /employees/:id', () => {
     const { id } = await createEmployee();
 
     const response = await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ jobTitle: 'Senior Software Engineer' }))
       .expect(200);
 
@@ -191,7 +191,7 @@ describe('PUT /employees/:id', () => {
     const { id } = await createEmployee({ salary: 120_000 });
 
     const response = await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ salary: 130_000 }))
       .expect(200);
 
@@ -207,7 +207,7 @@ describe('PUT /employees/:id', () => {
     const { id } = await createEmployee({ countryCode: 'US', salary: 100_000 });
 
     const response = await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ countryCode: 'DE', salary: 100_000 }))
       .expect(200);
 
@@ -219,7 +219,7 @@ describe('PUT /employees/:id', () => {
   });
 
   it('responds 404 for an unknown id', async () => {
-    const response = await request(app).put('/employees/999').send(aCreateRequest());
+    const response = await request(app).put('/api/employees/999').send(aCreateRequest());
 
     expect(response.status).toBe(404);
   });
@@ -229,7 +229,7 @@ describe('PUT /employees/:id', () => {
     const { id } = await createEmployee({ email: 'ada@example.com' });
 
     const response = await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ email: 'grace@example.com' }));
 
     expect(response.status).toBe(409);
@@ -239,7 +239,7 @@ describe('PUT /employees/:id', () => {
     const { id } = await createEmployee();
 
     const response = await request(app)
-      .put(`/employees/${id}`)
+      .put(`/api/employees/${id}`)
       .send(aCreateRequest({ salary: 0 }));
 
     expect(response.status).toBe(400);
@@ -251,13 +251,13 @@ describe('DELETE /employees/:id', () => {
   it('deletes the employee', async () => {
     const { id } = await createEmployee();
 
-    await request(app).delete(`/employees/${id}`).expect(204);
+    await request(app).delete(`/api/employees/${id}`).expect(204);
 
-    await request(app).get(`/employees/${id}`).expect(404);
+    await request(app).get(`/api/employees/${id}`).expect(404);
   });
 
   it('responds 404 for an unknown id', async () => {
-    await request(app).delete('/employees/999').expect(404);
+    await request(app).delete('/api/employees/999').expect(404);
   });
 });
 
@@ -293,7 +293,7 @@ describe('GET /employees', () => {
   });
 
   it('rejects a page size above 100', async () => {
-    const response = await request(app).get('/employees?pageSize=101');
+    const response = await request(app).get('/api/employees?pageSize=101');
 
     expect(response.status).toBe(400);
     expect(response.body.error.fields.pageSize).toBeDefined();

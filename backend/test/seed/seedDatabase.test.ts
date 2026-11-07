@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createDb, type Db } from '../../src/db/createDb';
-import { DuplicateEmailError } from '../../src/errors';
-import { generateEmployees } from '../../src/seed/generateEmployees';
-import { seedDatabase } from '../../src/seed/seedDatabase';
-import { aNewEmployee } from '../builders/aNewEmployee';
+import { createDb, type Db } from '../../src/db/createDb.js';
+import { DuplicateEmailError } from '../../src/errors.js';
+import { generateEmployees } from '../../src/seed/generateEmployees.js';
+import { seedDatabase } from '../../src/seed/seedDatabase.js';
+import { aNewEmployee } from '../builders/aNewEmployee.js';
 
 function countRows(db: Db, table: 'employees' | 'salary_history'): number {
   return (db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get() as { count: number }).count;
