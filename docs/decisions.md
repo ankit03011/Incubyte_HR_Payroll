@@ -64,6 +64,22 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D17.** `npm run seed` deletes and recreates the DB file (`DB_PATH`, default `backend/data/hr.db`), so every run produces the same data set. Settings: `SEED` (default 42), `COUNT` (default 10000).
 - **D18.** The "<2 s for 10k" test is a generous budget, not a benchmark. It catches regressions like dropping the outer transaction without being flaky.
 
+## Employee API (Chunk 2)
+
+- **D19.** The API takes and returns salaries in **major units** (`85000.5`), which is what HR thinks in. The service converts to integer minor units with the currency's digits from `/shared` (`toMinorUnits`/`toMajorUnits`). An amount with more decimals than the currency allows (e.g. JPY `100.5`) gets a 400; it is never silently rounded.
+- **D20.** Clients never send a currency. It's derived from `countryCode` (D7), so country and currency can't disagree.
+- **D21.** `start_date` was added as **migration 2** with a backfill from the earliest salary history, rather than by editing migration 1. The column is nullable because SQLite can't add a `NOT NULL` column without a default; the API always requires it.
+- **D22.** Sorting by salary uses the **USD equivalent** (a SQL `CASE` built from the static FX table), because raw minor units across currencies would rank any INR salary above any USD salary. Sorts always add `id` as a tie-breaker so pagination is stable.
+- **D23.** `PUT` replaces the whole record. A change to the salary or currency appends history **effective today** (from an injected clock), in the same transaction as the update. Backdated or future-dated salary changes are out of scope.
+- **D24.** Layering: routes parse with Zod and choose status codes; the service converts money and decides whether a salary changed; the repository holds all SQL and turns SQLite `UNIQUE` errors into `DuplicateEmailError`. Domain errors map to 400/404/409, and anything unexpected becomes a logged 500 with a generic body.
+- **D25.** Errors share one shape, `{ error: { code, message, fields? } }`. `fields` maps a field name to readable messages ("Required" when a field is missing).
+- **D26.** Pagination uses `LIMIT/OFFSET`: default page size 25, and a page size above 100 is rejected with a 400 rather than silently capped. Empty query values (`?search=`) mean no filter.
+- **D27.** Search is a case-insensitive substring match on name or email, with `%` and `_` escaped. SQLite's `LIKE` only folds ASCII case, so `LUCÍA` won't match `Lucía`; that's acceptable for the MVP.
+- **D28.** Emails are trimmed and lower-cased before they're stored.
+- **D29.** `server.ts` seeds 10k employees (seed 42) when the database is empty, so hosts with ephemeral disks come back usable after a restart; existing data is never touched. Run it with `npm run dev:api` (`tsx watch`).
+- **D30.** The backend serves `/employees` and `/health` at the root. The Vite dev proxy maps `/api/*` to them, so the frontend's own routes can't clash with API paths.
+- **D31.** The production build (`tsc` emit) is deferred to the deployment step, because ESM output needs `.js` import extensions and `/shared` compiled.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.

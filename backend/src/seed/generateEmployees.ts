@@ -64,7 +64,7 @@ export function generateEmployees({ seed, count }: { seed: number; count: number
       countryCode: country.code,
       currencyCode: country.currencyCode,
       salaryMinor: salaryWithinBand(random, country.code, job.title, country.currencyCode),
-      effectiveFrom: startDate(random),
+      startDate: startDate(random),
     };
   });
 }

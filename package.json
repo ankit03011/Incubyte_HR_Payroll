@@ -8,6 +8,7 @@
     "shared"
   ],
   "scripts": {
+    "dev:api": "npm run dev --workspace=backend",
     "test": "npm run test --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
