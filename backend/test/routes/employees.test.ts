@@ -3,11 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { CreateEmployeeRequest, EmployeeDetail, EmployeeListResponse } from '@hr/shared';
 import { createApp } from '../../src/app';
 import { createDb, type Db } from '../../src/db/createDb';
-import {
-  createEmployeeRepository,
-  type NewEmployee,
-} from '../../src/repositories/employeeRepository';
-import { aNewEmployee } from '../builders/aNewEmployee';
+import { givenEmployees } from '../builders/givenEmployees';
 
 const TODAY = '2026-11-07';
 
@@ -40,14 +36,6 @@ async function createEmployee(
     .send(aCreateRequest(overrides))
     .expect(201);
   return response.body as EmployeeDetail;
-}
-
-/** Arranges list fixtures directly through the repository; the list endpoint is what's under test. */
-function givenEmployees(...employees: Partial<NewEmployee>[]): void {
-  const repository = createEmployeeRepository(db);
-  employees.forEach((overrides, index) =>
-    repository.insert(aNewEmployee({ email: `employee${index}@example.com`, ...overrides })),
-  );
 }
 
 async function list(query: string): Promise<EmployeeListResponse> {
@@ -275,7 +263,7 @@ describe('DELETE /employees/:id', () => {
 
 describe('GET /employees', () => {
   it('returns the first page with default page size, total count and major-unit salaries', async () => {
-    givenEmployees({
+    givenEmployees(db, {
       fullName: 'Ada',
       countryCode: 'US',
       currencyCode: 'USD',
@@ -290,6 +278,7 @@ describe('GET /employees', () => {
 
   it('returns the requested page', async () => {
     givenEmployees(
+      db,
       { fullName: 'Alice' },
       { fullName: 'Bob' },
       { fullName: 'Carol' },
@@ -312,6 +301,7 @@ describe('GET /employees', () => {
 
   it('searches by name or email, ignoring case', async () => {
     givenEmployees(
+      db,
       { fullName: 'Grace Hopper', email: 'grace@navy.example' },
       { fullName: 'Alan Turing', email: 'alan@bletchley.example' },
       { fullName: 'Ada Lovelace', email: 'ada@example.com' },
@@ -322,7 +312,7 @@ describe('GET /employees', () => {
   });
 
   it('treats SQL wildcards in the search term as literal text', async () => {
-    givenEmployees({ email: 'a_b@example.com' }, { email: 'axb@example.com' });
+    givenEmployees(db, { email: 'a_b@example.com' }, { email: 'axb@example.com' });
 
     const body = await list('?search=a_b');
 
@@ -331,6 +321,7 @@ describe('GET /employees', () => {
 
   it('filters by country, department and job title together', async () => {
     givenEmployees(
+      db,
       {
         fullName: 'Match',
         countryCode: 'IN',
@@ -368,6 +359,7 @@ describe('GET /employees', () => {
 
   it('sorts by salary using the USD equivalent across currencies', async () => {
     givenEmployees(
+      db,
       {
         fullName: 'India ~60k USD',
         countryCode: 'IN',
@@ -389,6 +381,7 @@ describe('GET /employees', () => {
 
   it('sorts by start date, newest first', async () => {
     givenEmployees(
+      db,
       { fullName: 'Joined 2020', startDate: '2020-01-15' },
       { fullName: 'Joined 2024', startDate: '2024-06-01' },
       { fullName: 'Joined 2022', startDate: '2022-09-30' },
