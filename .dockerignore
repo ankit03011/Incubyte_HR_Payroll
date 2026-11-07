@@ -1,0 +1,23 @@
+# Rebuilt inside the image
+**/node_modules
+**/dist
+coverage
+
+# Local data and secrets never go into the image
+**/data
+*.db
+.env
+.env.*
+
+# Not needed to build or run
+.git
+.gitignore
+.vscode
+.claude
+docs
+**/test
+**/*.test.ts
+**/*.test.tsx
+README.md
+Dockerfile
+.dockerignore
