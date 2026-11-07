@@ -45,6 +45,8 @@ const SORT_EXPRESSIONS: Record<EmployeeSortField, string> = {
   name: 'full_name COLLATE NOCASE',
   salary: SALARY_IN_USD,
   startDate: 'start_date',
+  // Ids increase with every insert, unlike created_at (second resolution, identical for the seed).
+  added: 'id',
 };
 
 function escapeLike(term: string): string {

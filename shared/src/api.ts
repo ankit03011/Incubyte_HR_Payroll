@@ -42,7 +42,8 @@ export interface EmployeeDetail extends Employee {
   salaryHistory: SalaryHistoryEntry[];
 }
 
-export const EMPLOYEE_SORT_FIELDS = ['name', 'salary', 'startDate'] as const;
+/** `added` is insertion order (newest last ascending), used for "most recently added first". */
+export const EMPLOYEE_SORT_FIELDS = ['name', 'salary', 'startDate', 'added'] as const;
 export type EmployeeSortField = (typeof EMPLOYEE_SORT_FIELDS)[number];
 export const SORT_ORDERS = ['asc', 'desc'] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { NativeSelect } from '@/components/NativeSelect';
 import { Button } from '@/components/ui/button';
+import { formatCount } from '@/lib/format';
 
 export const PAGE_SIZES = [10, 25, 50, 100] as const;
 
@@ -9,10 +10,9 @@ interface Props {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  /** Omit for a fixed page size (no "Rows per page" selector). */
+  onPageSizeChange?: (pageSize: number) => void;
 }
-
-const count = new Intl.NumberFormat('en-US');
 
 export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange }: Props) {
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -20,21 +20,23 @@ export function Pagination({ page, pageSize, total, onPageChange, onPageSizeChan
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-4 text-sm">
-      <label className="flex items-center gap-2 text-muted-foreground">
-        Rows per page
-        <NativeSelect
-          value={pageSize}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-        >
-          {PAGE_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </NativeSelect>
-      </label>
+      {onPageSizeChange && (
+        <label className="flex items-center gap-2 text-muted-foreground">
+          Rows per page
+          <NativeSelect
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </NativeSelect>
+        </label>
+      )}
       <span className="tabular-nums text-muted-foreground">
-        {count.format(first)}–{count.format(last)} of {count.format(total)}
+        {`${formatCount(first)}–${formatCount(last)} of ${formatCount(total)}`}
       </span>
       <div className="flex gap-1">
         <Button

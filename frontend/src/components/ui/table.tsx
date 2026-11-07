@@ -3,9 +3,19 @@
 import * as React from 'react';
 import { cn } from 'cn';
 
-function Table({ className, ...props }: React.ComponentProps<'table'>) {
+function Table({
+  className,
+  containerClassName,
+  ...props
+}: React.ComponentProps<'table'> & {
+  /** E.g. a max height: the container then scrolls both ways and a sticky header stays put. */
+  containerClassName?: string;
+}) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className={cn('relative w-full overflow-x-auto', containerClassName)}
+    >
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}
@@ -15,8 +25,26 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <thead data-slot="table-header" className={cn('[&_tr]:border-b', className)} {...props} />;
+function TableHeader({
+  className,
+  sticky = false,
+  ...props
+}: React.ComponentProps<'thead'> & {
+  /** Keeps the header visible while the table container scrolls vertically. */
+  sticky?: boolean;
+}) {
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn(
+        '[&_tr]:border-b',
+        // Collapsed borders scroll away under a sticky header, so draw its divider with a shadow.
+        sticky && 'sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)]',
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {

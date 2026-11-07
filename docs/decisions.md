@@ -95,7 +95,7 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 
 - **D40.** Dependencies: Tailwind v4 and shadcn/ui (Nova preset). The CLI added `radix-ui`, `lucide-react`, `class-variance-authority`, `tw-animate-css`, the Geist font, and `cn` (shadcn's successor to `clsx` + `tailwind-merge`; verified as published by the shadcn maintainer, with no install scripts). Tests use RTL, `user-event`, `jest-dom` and `jsdom`.
 - **D41.** TanStack Table is pinned to **v8**. npm's latest, v9, renamed its core API (`useTable`), and v8 is the version I can explain and debug on this deadline. Upgrading later is contained to one file.
-- **D42.** There's no router: two pages are a state switch in the app shell. Deep links and back-button support are a future improvement, via react-router.
+- **D42.** ~~No router: two pages are a state switch in the app shell.~~ **Reversed by D58.**
 - **D43.** There's no data-fetching library. `useAsync` (about 40 lines) aborts stale requests and derives `loading` from which request produced the stored result, so a slow old response can't overwrite a newer one. It keeps the last data while reloading, so the table doesn't flash empty between pages.
 - **D44.** Filters and the country field use a styled native `<select>`: accessible, native on mobile and reliable in jsdom. Radix Select needs pointer APIs jsdom lacks.
 - **D45.** The server is the only source of validation rules. The form submits what was typed (`noValidate`) and shows the 400 `fields` under each input via `aria-describedby`. A 409 becomes "An employee with this email already exists." on the email field.
@@ -104,6 +104,37 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D48.** Filter options come from the `/shared` reference lists, which match the seed. A job title or department typed free-hand in the form won't appear in the filter dropdowns (a `/meta` endpoint of distinct values would fix that).
 - **D49.** Money is formatted with `Intl.NumberFormat('en-US')` in the employee's currency: whole amounts drop the decimals (`$120,000`), others show the currency's digits (`$85,000.50`). Dates are formatted in UTC so ISO dates don't shift a day.
 - **D50.** Tests stub `fetch` (the network boundary) through `test/support/mockApi.ts`, which records requests so tests assert on the query that was sent, not on component internals.
+
+## Insights dashboard (Chunk 5)
+
+- **D51.** Each panel (summary, by country, by job title, distribution, outliers) fetches on its own with `useAsync` and renders its own loading, empty and error-with-retry state through a shared `Panel`, so one failing endpoint never blanks the page.
+- **D52.** The summary uses hero numbers (stat cards), not charts: each answers one question at a glance. A missing average or median for an empty org shows "—", not `$0`.
+- **D53.** The by-country and by-job-title panels are plain tables (`StatisticsTable`): small, fixed and already aggregated server-side, so TanStack Table would add nothing. Amounts are in each row's own `currencyCode`; payroll is in USD.
+- **D54.** The distribution is a single-series Recharts column chart: one validated blue (`--chart-bar`, `#2a78d6` light and `#3987e5` dark, both passing the dataviz validator), no legend (the title names the series), columns at most 24 px with 4 px rounded tops, a recessive grid and a hover tooltip.
+- **D55.** The chart has a "Show table" view, so the values are available without reading the chart (accessibility) and tests can check the data without SVG rendering, which jsdom can't do (`ResizeObserver` is stubbed in the test setup).
+- **D56.** The outliers panel shows the salary in local currency plus the USD salary, peer median and ratio. Its page size is fixed at the API maximum of 50, using the shared `Pagination` with no size selector.
+- **D57.** The dashboard is lazy-loaded, so Recharts isn't in the initial bundle. After Chunk 5.5: 149 kB gzipped initially (including the router), with 110 kB loaded the first time the dashboard is opened.
+
+## UI overhaul (Chunk 5.5)
+
+- **D58.** Added `react-router-dom` (approved), reversing D42: `/employees`, `/employees/:id`, `/insights`, a 404 page, and `/` redirecting to `/employees`. One `routes` table serves both `createBrowserRouter` (app) and `createMemoryRouter` (tests); each route's `handle.title` feeds the top bar's single `<h1>`.
+- **D59.** The employee list's state lives in the URL (`search`, filters, `sortBy`/`sortOrder`, `page`, `pageSize`), so refresh, shared links and Back all work. Defaults are left out (a clean `/employees`), invalid hand-edited values fall back to defaults, and any change except paging returns to page 1.
+- **D60.** Search updates the URL 300 ms after typing stops, with `replace`, so typing doesn't fill the history. Filters, sort and paging push history entries, so Back undoes them. When Back changes the URL, the search box follows it.
+- **D61.** Employee detail is a page (`/employees/:id`), not a drawer: it's linkable and has room for history. Its "Back to employees" link returns to the same filtered list (the list's query string is passed in router state). Unknown or invalid ids show "Employee not found."
+- **D62.** App shell: a left sidebar (icons and labels, collapsible to icons on desktop), a drawer opened from a hamburger below `md` (shadcn Sheet, no new dependency), and a sticky top bar with the page title and theme toggle. Navigation items come from one array, so future sections need one line.
+- **D63.** Layout: a `max-w-7xl` content area with consistent padding. `min-w-0` on flex and grid children lets content shrink instead of widening the page; tables scroll inside their cards. Checked with real screenshots at 360, 1280 and 1920 px.
+- **D64.** Dashboard: summary cards, then chart cards (salary distribution across the full width; payroll by country and median salary by job title side by side, stacked on small screens), then the detail tables and outliers. All charts reuse existing endpoints, so no backend change; the by-country response is fetched once and shared by its chart and table.
+- **D65.** Chart cards have a fixed body height in every state (skeleton, empty, error, chart, table), so the grid never jumps and a chart can't overflow. Ranked bar charts are taller (`30rem`) to fit 16 one-line labels, truncated with the full name on hover.
+- **D66.** Number formats: chart axes and the payroll headline are compact (`$723.6M`, `85K`), with the exact amount shown underneath; tables keep exact amounts.
+- **D67.** Bar entry animation is off: charts render complete immediately, which also suits print, screenshots and reduced-motion users. Headless screenshots showed the animation leaving bars invisible.
+- **D68.** Palette: neutral greys with one accent blue (`--primary`, `--ring`, active nav, chart bars) in both themes. Dark mode was nearly free: the shadcn tokens already existed, so it took a toggle, the system preference as the default, a remembered choice, and an inline script that applies it before first paint.
+- **D69.** The employees table shows email under the name instead of in its own column, keeping the table within a laptop width with the row actions visible.
+
+## List and table usability
+
+- **D70.** The employee list defaults to **most recently added first** (new API sort `added`, by `id`: ids increase with every insert, while `created_at` has only second resolution and is identical for the 10k seeded rows). Column headers still sort by name, salary or start date.
+- **D71.** After adding an employee, the list returns to the default view (no search or filters, page 1, newest first), so the new employee is always the first row even if they wouldn't match the previous filters. A **Reset** button appears whenever the view differs from the default.
+- **D72.** Tables have a fixed-height scroll area with a sticky header instead of growing the page: the employees list fills the screen height minus the chrome (on `lg`+ the one-row toolbar leaves about 13.5rem to reserve; smaller screens reserve 17rem because the toolbar stacks), so pagination stays visible at the bottom; dashboard tables cap at 28rem and the detail page's salary history at 24rem. The header's divider is an inset shadow, because collapsed borders scroll away under a sticky header.
 
 ## Known issues
 

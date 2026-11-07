@@ -20,3 +20,37 @@ const dateFormat = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'medium', timeZo
 export function formatDate(isoDate: string): string {
   return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+const compactUsd = new Intl.NumberFormat(LOCALE, {
+  style: 'currency',
+  currency: 'USD',
+  notation: 'compact',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
+/** Short USD amounts for chart axes, e.g. $20K, $1.5M. */
+export function formatCompactUsd(amount: number): string {
+  return compactUsd.format(amount);
+}
+
+/** A salary relative to the peer median, e.g. 2.79×. */
+export function formatRatio(ratio: number): string {
+  return `${ratio.toFixed(2)}×`;
+}
+
+const countFormat = new Intl.NumberFormat(LOCALE);
+
+export function formatCount(count: number): string {
+  return countFormat.format(count);
+}
+
+const compactCount = new Intl.NumberFormat(LOCALE, {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+/** Short counts for chart axes, e.g. 85K, 1.2M. */
+export function formatCompactCount(count: number): string {
+  return compactCount.format(count);
+}

@@ -6,6 +6,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { countryByCode, type Employee, type EmployeeSortField, type SortOrder } from '@hr/shared';
+import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +20,11 @@ import {
 } from '@/components/ui/table';
 import { formatDate, formatMoney } from '@/lib/format';
 
+/** Router state passed to the employee page. */
+export interface EmployeeLinkState {
+  listSearch: string;
+}
+
 export interface Sort {
   sortBy: EmployeeSortField;
   sortOrder: SortOrder;
@@ -29,30 +35,38 @@ interface Props {
   loading: boolean;
   sort: Sort;
   onSortChange: (sort: Sort) => void;
-  onOpen: (employee: Employee) => void;
+  /** The list's query string, so the detail page can link back to the same filtered view. */
+  listSearch: string;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
 }
 
 const SKELETON_ROWS = 8;
 
-function buildColumns({ onOpen, onEdit, onDelete }: Pick<Props, 'onOpen' | 'onEdit' | 'onDelete'>) {
+function buildColumns({
+  listSearch,
+  onEdit,
+  onDelete,
+}: Pick<Props, 'listSearch' | 'onEdit' | 'onDelete'>) {
   const columns: ColumnDef<Employee>[] = [
     {
       id: 'name',
       accessorKey: 'fullName',
       header: 'Name',
+      // Email sits under the name: one column instead of two keeps the table within a laptop width.
       cell: ({ row }) => (
-        <button
-          type="button"
-          className="font-medium hover:underline"
-          onClick={() => onOpen(row.original)}
-        >
-          {row.original.fullName}
-        </button>
+        <div className="grid">
+          <Link
+            to={`/employees/${row.original.id}`}
+            state={{ listSearch } satisfies EmployeeLinkState}
+            className="w-fit rounded-sm font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {row.original.fullName}
+          </Link>
+          <span className="text-xs text-muted-foreground">{row.original.email}</span>
+        </div>
       ),
     },
-    { id: 'email', header: 'Email', enableSorting: false, accessorKey: 'email' },
     {
       id: 'country',
       header: 'Country',
@@ -134,8 +148,14 @@ export function EmployeesTable({ employees, loading, sort, onSortChange, ...acti
   const columnCount = table.getAllLeafColumns().length;
 
   return (
-    <Table aria-busy={loading}>
-      <TableHeader>
+    // Fixed-height scroll area with a sticky header keeps pagination in view below the table.
+    // lg+: one-row toolbar, so reserve only top bar, padding, toolbar, gaps and pagination (~13rem).
+    // Below lg the toolbar stacks, so keep a generous reserve with a usable minimum height.
+    <Table
+      aria-busy={loading}
+      containerClassName="max-h-[max(24rem,calc(100svh-17rem))] lg:max-h-[max(20rem,calc(100svh-13.5rem))]"
+    >
+      <TableHeader sticky>
         {table.getHeaderGroups().map((group) => (
           <TableRow key={group.id}>
             {group.headers.map((header) => {

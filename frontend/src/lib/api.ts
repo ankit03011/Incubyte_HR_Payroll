@@ -1,10 +1,20 @@
 import type {
   ApiError,
+  CountryInsightsResponse,
   EmployeeDetail,
   EmployeeInput,
   EmployeeListQuery,
   EmployeeListResponse,
+  InsightsSummary,
+  JobTitleInsightsResponse,
+  OutliersResponse,
+  SalaryDistribution,
 } from '@hr/shared';
+
+export interface InsightsFilters {
+  countryCode?: string;
+  department?: string;
+}
 
 /** A form submission as typed; the server validates it (salary may be missing). */
 export type EmployeeDraft = Omit<EmployeeInput, 'salary'> & { salary?: number };
@@ -31,7 +41,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (response.status === 204 ? undefined : await response.json()) as T;
 }
 
-function toSearchParams(query: EmployeeListQuery): string {
+/** Drops empty values so "All" filters are simply absent from the URL. */
+function toSearchParams(query: object): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== '') params.set(key, String(value));
@@ -53,6 +64,27 @@ export const api = {
 
   updateEmployee: (id: number, draft: EmployeeDraft) =>
     request<EmployeeDetail>(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(draft) }),
+
+  insightsSummary: (signal?: AbortSignal) =>
+    request<InsightsSummary>('/insights/summary', { signal: signal ?? null }),
+
+  insightsByCountry: (signal?: AbortSignal) =>
+    request<CountryInsightsResponse>('/insights/by-country', { signal: signal ?? null }),
+
+  insightsByJobTitle: (filters: Pick<InsightsFilters, 'countryCode'>, signal?: AbortSignal) =>
+    request<JobTitleInsightsResponse>(`/insights/by-job-title?${toSearchParams(filters)}`, {
+      signal: signal ?? null,
+    }),
+
+  insightsDistribution: (filters: InsightsFilters, signal?: AbortSignal) =>
+    request<SalaryDistribution>(`/insights/distribution?${toSearchParams(filters)}`, {
+      signal: signal ?? null,
+    }),
+
+  insightsOutliers: (paging: { page: number; pageSize: number }, signal?: AbortSignal) =>
+    request<OutliersResponse>(`/insights/outliers?${toSearchParams(paging)}`, {
+      signal: signal ?? null,
+    }),
 
   deleteEmployee: (id: number) => request<undefined>(`/employees/${id}`, { method: 'DELETE' }),
 };
