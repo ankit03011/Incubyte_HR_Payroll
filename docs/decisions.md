@@ -80,6 +80,17 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - **D30.** The backend serves `/employees` and `/health` at the root. The Vite dev proxy maps `/api/*` to them, so the frontend's own routes can't clash with API paths.
 - **D31.** The production build (`tsc` emit) is deferred to the deployment step, because ESM output needs `.js` import extensions and `/shared` compiled.
 
+## Insights API (Chunk 3)
+
+- **D32.** One SQL statistics query (`salaryStatistics` in `insightsRepository`) computes headcount, min, max, mean, median and USD payroll for any grouping, so every endpoint aggregates the same way.
+- **D33.** Median is computed in SQL with `ROW_NUMBER()` and `COUNT(*) OVER (PARTITION BY …)`, averaging the rows at positions `(n+1)/2` and `(n+2)/2`. That gives the middle row for odd n and the mean of the two middle rows for even n. Tested with odd, even, single and empty datasets.
+- **D34.** Currencies are never mixed. `by-country` groups by country and currency and reports in local currency. `by-job-title` reports in USD across countries and in local currency with `?countryCode=`. Summary, distribution and outliers use USD. Every row states its `currencyCode`.
+- **D35.** USD conversion happens per row in SQL (`SALARY_IN_USD`, shared with the salary sort). Rounding (cents, or the local currency's digits) happens once, in the service, after aggregating.
+- **D36.** The distribution uses fixed 20,000 USD buckets `[min, max)`. Empty buckets between the lowest and highest are filled in so the histogram is continuous. Salaries are rounded to cents before bucketing so float noise can't push a value into the wrong bucket.
+- **D37.** Outliers are employees paid above 1.5x or below 0.5x the median **for the same job title and country**, so they're compared like for like and an Indian salary is never flagged against US pay. Sorted by ratio, most overpaid first; page size up to 50.
+- **D38.** Performance on 10k employees, real server and file DB: every insights endpoint answers in under 90 ms. Tests enforce under 500 ms per endpoint in memory. No extra indexes were needed, because full scans of 10k rows are cheap.
+- **D39.** The seeded salaries are uniform within bands whose top is at most about 1.7x the bottom, so the seed produces no outliers. Real data would.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.

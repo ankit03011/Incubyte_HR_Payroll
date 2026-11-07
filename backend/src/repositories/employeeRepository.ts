@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
-import { CURRENCIES, type EmployeeSortField, type SortOrder } from '@hr/shared';
+import type { EmployeeSortField, SortOrder } from '@hr/shared';
 import type { Db } from '../db/createDb';
+import { SALARY_IN_USD, employeeColumns } from '../db/sql';
 import { DuplicateEmailError } from '../errors';
 
 export interface NewEmployee {
@@ -38,18 +39,7 @@ export interface EmployeeListOptions extends EmployeeFilter {
   offset: number;
 }
 
-const EMPLOYEE_COLUMNS = `
-  id, full_name AS fullName, email, job_title AS jobTitle, department,
-  country_code AS countryCode, currency_code AS currencyCode,
-  salary_minor AS salaryMinor, start_date AS startDate`;
-
-/**
- * Salary in USD, so employees paid in different currencies sort fairly. Built from the static
- * reference data (never from user input), so interpolating it into SQL is safe.
- */
-const SALARY_IN_USD = `salary_minor * CASE currency_code ${CURRENCIES.map(
-  (c) => `WHEN '${c.code}' THEN ${1 / (c.unitsPerUsd * 10 ** c.minorUnits)}`,
-).join(' ')} END`;
+const EMPLOYEE_COLUMNS = employeeColumns();
 
 const SORT_EXPRESSIONS: Record<EmployeeSortField, string> = {
   name: 'full_name COLLATE NOCASE',

@@ -3,8 +3,11 @@ import type { HealthResponse } from '@hr/shared';
 import type { Db } from './db/createDb';
 import { errorHandler } from './http/errorHandler';
 import { createEmployeeRepository } from './repositories/employeeRepository';
+import { createInsightsRepository } from './repositories/insightsRepository';
 import { employeesRouter } from './routes/employeesRouter';
+import { insightsRouter } from './routes/insightsRouter';
 import { createEmployeeService } from './services/employeeService';
+import { createInsightsService } from './services/insightsService';
 
 export interface AppDependencies {
   db: Db;
@@ -29,6 +32,7 @@ export function createApp({ db, today = utcToday }: AppDependencies): Express {
     today,
   });
   app.use('/employees', employeesRouter(employeeService));
+  app.use('/insights', insightsRouter(createInsightsService(createInsightsRepository(db))));
 
   app.use(errorHandler);
   return app;

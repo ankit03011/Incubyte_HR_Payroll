@@ -2,6 +2,7 @@ import {
   COUNTRIES,
   DEFAULT_PAGE_SIZE,
   EMPLOYEE_SORT_FIELDS,
+  MAX_OUTLIERS_PAGE_SIZE,
   MAX_PAGE_SIZE,
   SORT_ORDERS,
   decimalPlacesMessage,
@@ -65,20 +66,39 @@ export const employeeInputSchema = z
     }
   }) satisfies z.ZodType<EmployeeInput>;
 
-export const listQuerySchema = z.object({
-  page: z.coerce.number().int('Must be a whole number').min(1, 'Must be at least 1').default(1),
-  pageSize: z.coerce
+const pageField = z.coerce
+  .number()
+  .int('Must be a whole number')
+  .min(1, 'Must be at least 1')
+  .default(1);
+
+const pageSizeField = (max: number, fallback: number) =>
+  z.coerce
     .number()
     .int('Must be a whole number')
     .min(1, 'Must be at least 1')
-    .max(MAX_PAGE_SIZE, `Must be at most ${MAX_PAGE_SIZE}`)
-    .default(DEFAULT_PAGE_SIZE),
+    .max(max, `Must be at most ${max}`)
+    .default(fallback);
+
+export const listQuerySchema = z.object({
+  page: pageField,
+  pageSize: pageSizeField(MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE),
   search: optionalFilter,
   countryCode: optionalFilter,
   department: optionalFilter,
   jobTitle: optionalFilter,
   sortBy: z.enum(EMPLOYEE_SORT_FIELDS).default('name'),
   sortOrder: z.enum(SORT_ORDERS).default('asc'),
+});
+
+export const insightsFilterSchema = z.object({
+  countryCode: optionalFilter,
+  department: optionalFilter,
+});
+
+export const outliersQuerySchema = z.object({
+  page: pageField,
+  pageSize: pageSizeField(MAX_OUTLIERS_PAGE_SIZE, MAX_OUTLIERS_PAGE_SIZE),
 });
 
 export const idParamsSchema = z.object({

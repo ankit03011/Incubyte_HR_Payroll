@@ -45,7 +45,7 @@ function toNewEmployee(input: EmployeeInput): NewEmployee {
   };
 }
 
-function toEmployee({ salaryMinor, ...record }: EmployeeRecord): Employee {
+export function toEmployee({ salaryMinor, ...record }: EmployeeRecord): Employee {
   return { ...record, salary: toMajorUnits(salaryMinor, record.currencyCode) };
 }
 
