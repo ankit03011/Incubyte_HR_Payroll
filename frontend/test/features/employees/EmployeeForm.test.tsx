@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { EmployeesPage } from '@/features/employees/EmployeesPage';
 import { aPage, anEmployee, mockApi, type RecordedRequest } from '../../support/mockApi';
+import { renderApp } from '../../support/renderApp';
 
 type Reply = { status?: number; body?: unknown };
 
@@ -14,7 +14,7 @@ function mockEmployeesApi(onWrite: (request: RecordedRequest) => Reply) {
 }
 
 async function openAddDialog(user: UserEvent): Promise<HTMLElement> {
-  render(<EmployeesPage />);
+  renderApp('/employees');
   await screen.findByText('Ada Lovelace');
   await user.click(screen.getByRole('button', { name: 'Add employee' }));
   return screen.getByRole('dialog', { name: 'Add employee' });
@@ -51,6 +51,28 @@ describe('employee form', () => {
       startDate: '2024-03-01',
     });
     expect(api.listQueries()).toHaveLength(2);
+  });
+
+  it('shows a newly added employee at the top of the list, clearing search and filters', async () => {
+    const user = userEvent.setup();
+    const api = mockEmployeesApi(() => ({ status: 201, body: anEmployee({ id: 2 }) }));
+    const app = renderApp('/employees?search=ada&countryCode=IN&page=2');
+    await screen.findByText('Ada Lovelace');
+    await user.click(screen.getByRole('button', { name: 'Add employee' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add employee' });
+
+    await fillIn(user, dialog);
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(app.location().search).toBe(''));
+    await waitFor(() =>
+      expect(Object.fromEntries(api.lastListQuery() ?? [])).toEqual({
+        page: '1',
+        pageSize: '25',
+        sortBy: 'added',
+        sortOrder: 'desc',
+      }),
+    );
   });
 
   it('shows the currency of the selected country next to the salary', async () => {
@@ -114,7 +136,7 @@ describe('employee form', () => {
   it('pre-fills the form when editing and saves the changes with PUT', async () => {
     const user = userEvent.setup();
     const api = mockEmployeesApi(() => ({ body: anEmployee() }));
-    render(<EmployeesPage />);
+    renderApp('/employees');
     await screen.findByText('Ada Lovelace');
 
     await user.click(screen.getByRole('button', { name: 'Edit Ada Lovelace' }));

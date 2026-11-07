@@ -1,9 +1,9 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { EmployeeDetail } from '@hr/shared';
-import { EmployeesPage } from '@/features/employees/EmployeesPage';
 import { aPage, anEmployee, mockApi } from '../../support/mockApi';
+import { renderApp } from '../../support/renderApp';
 
 function mockEmployeesApi() {
   return mockApi(({ method, url }) => {
@@ -27,7 +27,7 @@ describe('deleting an employee', () => {
   it('asks for confirmation and deletes only once confirmed, then refreshes the list', async () => {
     const user = userEvent.setup();
     const api = mockEmployeesApi();
-    render(<EmployeesPage />);
+    renderApp('/employees');
     await screen.findByText('Ada Lovelace');
 
     await user.click(screen.getByRole('button', { name: 'Delete Ada Lovelace' }));
@@ -45,7 +45,7 @@ describe('deleting an employee', () => {
   it('keeps the employee when the confirmation is cancelled', async () => {
     const user = userEvent.setup();
     const api = mockEmployeesApi();
-    render(<EmployeesPage />);
+    renderApp('/employees');
     await screen.findByText('Ada Lovelace');
 
     await user.click(screen.getByRole('button', { name: 'Delete Ada Lovelace' }));
@@ -57,15 +57,16 @@ describe('deleting an employee', () => {
 });
 
 describe('employee detail', () => {
-  it('shows the salary history, newest first, when an employee is opened', async () => {
+  it('opens the employee page with salary history, newest first', async () => {
     const user = userEvent.setup();
     mockEmployeesApi();
-    render(<EmployeesPage />);
+    const app = renderApp('/employees');
 
-    await user.click(await screen.findByRole('button', { name: 'Ada Lovelace' }));
+    await user.click(await screen.findByRole('link', { name: 'Ada Lovelace' }));
 
-    const detail = await screen.findByRole('dialog', { name: 'Ada Lovelace' });
-    const history = within(await within(detail).findByRole('table', { name: 'Salary history' }));
+    expect(await screen.findByRole('heading', { name: 'Ada Lovelace' })).toBeInTheDocument();
+    expect(app.location().pathname).toBe('/employees/1');
+    const history = within(await screen.findByRole('table', { name: 'Salary history' }));
     const [, ...rows] = history.getAllByRole('row');
     expect(rows.map((row) => row.textContent)).toEqual([
       'Nov 7, 2026$130,000',

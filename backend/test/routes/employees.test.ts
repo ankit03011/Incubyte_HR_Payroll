@@ -379,6 +379,23 @@ describe('GET /employees', () => {
     ]);
   });
 
+  it('sorts by date added, newest first', async () => {
+    givenEmployees(
+      db,
+      { fullName: 'Added first' },
+      { fullName: 'Added second' },
+      { fullName: 'Added third' },
+    );
+
+    const body = await list('?sortBy=added&sortOrder=desc');
+
+    expect(body.items.map((e) => e.fullName)).toEqual([
+      'Added third',
+      'Added second',
+      'Added first',
+    ]);
+  });
+
   it('sorts by start date, newest first', async () => {
     givenEmployees(
       db,
