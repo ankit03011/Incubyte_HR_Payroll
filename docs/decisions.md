@@ -47,6 +47,12 @@ Confirmed with the product owner (me): salary is paid in the employee's country 
 - `tsx` to run TS in dev (server, seed script). Production uses a `tsc` build.
 - Tailwind CSS, because shadcn/ui needs it. Added with the first UI feature.
 
+## D10. Format validation in Zod, integrity invariants in the DB
+
+- **Decision:** The schema enforces only integrity invariants: foreign keys, cascade delete, unique email (case-insensitive) and `salary_minor > 0`. Format rules (non-blank name, ISO country/currency code shape, currency matching country) are validated with Zod at the API boundary.
+- **Why:** Zod can return field-level, user-readable errors, and each rule is written in one place. DB CHECKs would duplicate those rules and only surface as generic `SQLITE_CONSTRAINT` errors. The salary CHECK stays because a non-positive salary would silently corrupt every aggregate.
+- **Trade-off:** Anything that writes to the DB without going through the API (the seed script, manual SQL, a future import job) bypasses format rules and could store e.g. `country_code = 'Germany'`. Mitigation: the seed builds rows from the same typed constants in `/shared`, and any future write path should reuse the Zod schemas.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.
