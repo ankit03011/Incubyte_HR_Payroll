@@ -4,7 +4,7 @@
 
 - **Decision:** A root `tsconfig.base.json` with `strict` plus `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and `verbatimModuleSyntax`. Each workspace extends it. ESM with `moduleResolution: "Bundler"`, and `tsc` is used only for type-checking (`noEmit`).
 - **Why:** The extra strict flags catch unchecked index access and `undefined` vs. missing-property bugs, which matter for request parsing and SQL row mapping. One base config keeps all three packages equally strict.
-- **Trade-off:** There is no compiled `dist` yet, so running the server needs a TS runner or build step (see Open questions).
+- **Trade-off:** There is no compiled `dist` yet, so running the server needs a TS runner or build step (see D9).
 
 ## D2. Monorepo with npm workspaces; `/shared` exports TS source
 
@@ -25,17 +25,28 @@
 ## D5. Frontend scaffold is minimal
 
 - **Decision:** Vite + React + TS only, for now. shadcn/ui, TanStack Table and Recharts get added when the first UI feature needs them.
-- **Why:** No dependency before there's a use for it. shadcn/ui also needs Tailwind, which needs approval (see Open questions).
+- **Why:** No dependency before there's a use for it. shadcn/ui also needs Tailwind, now approved (see D9).
 
 ## D6. Schema
 
 See [schema.md](schema.md). In short: current salary is denormalised onto `employees` for fast aggregation, history goes in `salary_history` (both written in one transaction), money is stored as integer minor units, and reference/FX data lives in `/shared` constants.
 
+## D7. Confirmed domain assumptions
+
+Confirmed with the product owner (me): salary is paid in the employee's country currency, money is stored as integer minor units, and email is unique per employee. See [requirements.md](requirements.md).
+
+## D8. Hard delete for employees
+
+- **Decision:** Deleting an employee removes the row, and `ON DELETE CASCADE` removes their salary history.
+- **Why:** It's the simplest model that matches the MVP. There are no termination workflows and no audit requirement.
+- **Trade-off:** Deleted data can't be recovered, and history is lost for leavers. A real HR system needs an employment end date (soft delete) and an audit trail; those are future improvements, and the schema can be extended without breaking anything.
+
+## D9. Approved dependencies
+
+- ESLint extras: `typescript-eslint`, `eslint-config-prettier`, `eslint-plugin-react-hooks`, `globals`.
+- `tsx` to run TS in dev (server, seed script). Production uses a `tsc` build.
+- Tailwind CSS, because shadcn/ui needs it. Added with the first UI feature.
+
 ## Known issues
 
 - `npm audit` reports 10 moderate advisories, all from one transitive `minimatch` version used by dev tooling. Nothing ships to production, so I'm not forcing an override.
-
-## Open questions
-
-- **Dev server runner:** `tsx` (dev dependency) vs. a `tsc` build. Needed once `src/server.ts` exists.
-- **Tailwind CSS:** required by shadcn/ui; needs approval.
