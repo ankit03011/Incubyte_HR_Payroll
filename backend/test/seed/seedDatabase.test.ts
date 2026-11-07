@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../../src/db/createDb';
+import { DuplicateEmailError } from '../../src/errors';
 import { generateEmployees } from '../../src/seed/generateEmployees';
 import { seedDatabase } from '../../src/seed/seedDatabase';
 import { aNewEmployee } from '../builders/aNewEmployee';
@@ -25,7 +26,7 @@ describe('seedDatabase', () => {
       aNewEmployee({ email: 'ADA@example.com' }),
     ];
 
-    expect(() => seedDatabase(db, batch)).toThrow(/UNIQUE/);
+    expect(() => seedDatabase(db, batch)).toThrow(DuplicateEmailError);
     expect(countRows(db, 'employees')).toBe(0);
     expect(countRows(db, 'salary_history')).toBe(0);
   });

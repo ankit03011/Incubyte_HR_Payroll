@@ -9,7 +9,7 @@ export function aNewEmployee(overrides: Partial<NewEmployee> = {}): NewEmployee 
     countryCode: 'DE',
     currencyCode: 'EUR',
     salaryMinor: 6_500_000,
-    effectiveFrom: '2026-11-01',
+    startDate: '2026-11-01',
     ...overrides,
   };
 }

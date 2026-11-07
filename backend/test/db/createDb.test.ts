@@ -1,3 +1,4 @@
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../../src/db/createDb';
 import { migrate } from '../../src/db/migrate';
@@ -22,12 +23,16 @@ function insertEmployee(db: Db, overrides: { email?: string; salaryMinor?: numbe
 
 function insertSalaryHistory(
   db: Db,
-  { employeeId, salaryMinor = 5_000_000 }: { employeeId: number; salaryMinor?: number },
+  {
+    employeeId,
+    salaryMinor = 5_000_000,
+    effectiveFrom = '2026-01-01',
+  }: { employeeId: number; salaryMinor?: number; effectiveFrom?: string },
 ): void {
   db.prepare(
     `INSERT INTO salary_history (employee_id, salary_minor, currency_code, effective_from)
-     VALUES (?, ?, 'EUR', '2026-01-01')`,
-  ).run(employeeId, salaryMinor);
+     VALUES (?, ?, 'EUR', ?)`,
+  ).run(employeeId, salaryMinor, effectiveFrom);
 }
 
 describe('createDb', () => {
@@ -82,5 +87,19 @@ describe('migrate', () => {
     migrate(db);
 
     expect(db.prepare('SELECT COUNT(*) AS count FROM employees').get()).toEqual({ count: 1 });
+  });
+
+  it('backfills start_date from the earliest salary history when upgrading from version 1', () => {
+    const db = new Database(':memory:');
+    migrate(db, { upTo: 1 });
+    const employeeId = insertEmployee(db);
+    insertSalaryHistory(db, { employeeId, effectiveFrom: '2022-01-01' });
+    insertSalaryHistory(db, { employeeId, effectiveFrom: '2020-05-01' });
+
+    migrate(db);
+
+    expect(db.prepare('SELECT start_date FROM employees').get()).toEqual({
+      start_date: '2020-05-01',
+    });
   });
 });
