@@ -239,6 +239,12 @@ describe('GET /insights/outliers', () => {
     expect((await get<OutliersResponse>('/insights/outliers')).total).toBe(0);
   });
 
+  it('finds the deliberate outliers in the seeded data', async () => {
+    seedDatabase(db, generateEmployees({ seed: 42, count: 10_000 }));
+
+    expect((await get<OutliersResponse>('/insights/outliers')).total).toBeGreaterThan(0);
+  });
+
   it('rejects a page size above 50', async () => {
     const response = await request(app).get('/insights/outliers?pageSize=51');
 
